@@ -5,7 +5,7 @@ use App\Database;
 //include_once "../src/Database.php";
 
 $connection = new Database();
-$result = $connection->select('products_list', 'availability = 1');
+$result = $connection->select('product');
 ?>
 <!--process_order.php-->
 <h2>Wybierz produkty:</h2>
@@ -13,9 +13,9 @@ $result = $connection->select('products_list', 'availability = 1');
 
     <?php
     foreach ($result as $product) {
-        echo '<input type="checkbox" name="products" value="' . $product['item_id'] . '">';
-        echo $product['content'] . ' - Cena: ' . $product['price'] . ' zł';
-        echo ' Ilość: <input type="text" name="quantity" value=""><br>';
+        echo '<input type="checkbox" name="products[' . $product['product_id'] . '][checked]">';
+        echo $product['name'] . ' - Cena: ' . $product['price'] . ' zł';
+        echo ' Ilość: <input type="number" name="products[' . $product['product_id'] . '][quantity]" value=""><br>';
     }
     ?>
     <h2>Dane do zamówienia:</h2>

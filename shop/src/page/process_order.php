@@ -1,4 +1,4 @@
-<html>
+<html lang="pl">
 <body>
 <div>
     <h1>Twoje zamówienie</h1>
@@ -8,68 +8,82 @@
 
     $connection = new Database();
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $products = $_POST['products'];
-        $quantity = $_POST['quantity'];
 
+        // tworzenie tabeli z danymi użytkownika
         $userData = array(
-            "fullname" => $_POST['fullname'],
-            "surname" => $_POST['surname'],
-            "address" => $_POST['address'],
-            "email" => $_POST['email']
+            "fullname" => $_POST['fullname'] == null ? "" : $_POST['fullname'],
+            "surname" => $_POST['surname'] == null ? "" : $_POST['surname'],
+            "address" => $_POST['address'] == null ? "" : $_POST['address'],
+            "email" => $_POST['email'] == null ? "" : $_POST['email']
         );
 
-//        $connection->insert("contractors", $userData, "email = '$userData[email]'");
-        $userId = $connection->select('contractors', "email = '$userData[email]'");
-        if ($userId) {
-            // Pobranie pierwszego wiersza z tablicy wynikowej
-            $firstRow = $userId[0];
-            // Pobranie wartości z kolumny 'email'
-            $contractorID = $firstRow['contractor_id'];
-            $contractorArray = array(
-                "purchaser_id" => $contractorID
-            );
-            echo $contractorID;
-
-            $connection->insert('orders', $contractorArray, $contractorID);
-
-            echo "<h2>DANE ZAMAWIAJĄCEGO:</h2> <p>Imię: $userData[fullname] <br> Nazwisko: $userData[surname]<br> Adres email: $userData[email]<br> Adres: $userData[address]</p>";
-
-            // Wyświetlenie wartości email
+        // sprawdzenie czy dane nie są puste
+        if (empty($userData['fullname']) || empty(['surname']) || empty($userData['address']) || empty($userData['email'])) {
+            echo "Dane do zamówienia nie zostały wypełnione prawidłowo!";
         } else {
-            echo "Brak wyników.";
+            // szukanie podanego maila w bazie
+            $contractor = $connection->select('contractor', "email = '$userData[email]'")->fetch(PDO::FETCH_ASSOC);
+
+            // jeśli dany mail nie istnieje w bazie dodaj dane użytkownika do tabeli contractor
+            if (!$contractor) {
+                $connection->insert("contractor", $userData);
+                $contractor = $connection->select('contractor', "email = '$userData[email]'")->fetch(PDO::FETCH_ASSOC);
+
+                // tworzenie tabeli zawierającej contractor_id w celu przekazania do funkcji insert
+                $contractorArray = array(
+                    "contractor_id" => $contractor['contractor_id']
+                );
+
+                // przypisanie order_id nowo utworzonego zamówienia do zmiennej $lastCustomerOrderId
+                $lastCustomerOrderId = $connection->insert('customer_order', $contractorArray);
+            } else {
+                // tworzenie tabeli zawierającej contractor_id w celu przekazania do funkcji insert
+                $contractorArray = array(
+                    "contractor_id" => $contractor['contractor_id']
+                );
+                // przypisanie order_id nowo utworzonego zamówienia do zmiennej $lastCustomerOrderId
+                $lastCustomerOrderId = $connection->insert('customer_order', $contractorArray);
+
+
+            }
+
+            $orderedProducts = [];
+            foreach ($_POST['products'] as $productId => $productData) {
+                // Sprawdź, czy produkt został zaznaczony
+                if (isset($productData['checked'])) {
+                    // Pobierz ilość zamówionego produktu
+                    $quantity = $productData['quantity'];
+                    // Dodaj produkt do listy zamówionych
+                    $orderedProducts[] = [
+                        'product_id' => $productId,
+                        'quantity' => $quantity
+                    ];
+                }
+            }
+            // jeśli nie zaznaczono żadnego produktu wyświetl komunikat o błędzie i zakończ działanie skryptu
+            if (empty($orderedProducts)) {
+                echo 'Nie wybrano żadnych produktów!';
+            } else {
+                foreach ($orderedProducts as $product) {
+                    $productData = array(
+                        "order_id" => $lastCustomerOrderId, // przypisanie aktualnego numeru zamówienia do danego produktu
+                        "product_id" => $product['product_id'], // przypisanie id produktu do tego zamówienia
+                        "quantity" => $product['quantity'] // przypisanie ilości zamawianego produktu do zamówienia
+                    );
+                    $connection->insert('order_product', $productData);
+                }
+                echo "Twój numer zamówienia: $lastCustomerOrderId" . '<br>';
+
+                foreach ($orderedProducts as $product) {
+                    $shoppingCart = $connection->select("product", 'product_id = ' . $product['product_id'])->fetch(PDO::FETCH_ASSOC);
+                    $price = number_format($shoppingCart['price'] * $product['quantity'], 2, '.', '');
+                    echo $shoppingCart['name'] . ' cena: ' . $price . 'zł' . '<br>';
+                };
+                echo "<h2>DANE ZAMAWIAJĄCEGO:</h2> <p>Imię: $contractor[fullname] <br> Nazwisko: $contractor[surname]<br> Adres email: $contractor[email]<br> Adres: $contractor[address]</p>";
+            }
         }
+    }
     ?>
 </div>
 </body>
 </html>
-
-<?php
-//if ($_SERVER["REQUEST_METHOD"] == "POST") {
-//    // Pobierz dane z formularza
-//    $produkty = $_POST['produkty'];
-//    $ilosci = $_POST['ilosc'];
-//    $imie = $_POST['imie'];
-//    $nazwisko = $_POST['nazwisko'];
-//    $adres = $_POST['adres'];
-//
-//    // Zapis zamówienia do bazy danych
-//    $sql = "INSERT INTO Zamówienie (kontrahent_id) VALUES ('$kontrahent_id')";
-//    $conn->query($sql);
-//    $zamowienie_id = $conn->insert_id;
-//
-//    foreach ($produkty as $produkt_id) {
-//        // Pobierz ilość danego produktu
-//        $ilosc = $ilosci[$produkt_id];
-//
-//        // Zapisz szczegóły zamówienia do bazy danych
-//        $sql = "INSERT INTO SzczegolyZamowienia (zamowienie_id, produkt_id, ilosc)
-//            VALUES ('$zamowienie_id', '$produkt_id', '$ilosc')";
-//        $conn->query($sql);
-//    }
-//
-//    // Wygeneruj potwierdzenie zamówienia i fakturę w formacie PDF
-//    generateConfirmationAndInvoice($zamowienie_id);
-//
-//    // Dodaj dodatkową funkcjonalność, np. wysłanie powiadomienia e-mail, aktualizację stanu magazynowego itp.
-//}
-//?>

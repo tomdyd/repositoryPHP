@@ -37,14 +37,15 @@ class Database
         try {
             $stmt = $this->conn->prepare($sql);
             $result = $stmt->execute();
-            $result = $stmt->fetchAll();
+            $result = $stmt;
             return $result;
         } catch (\PDOException $e) {
             echo 'Error: ' . $e->getMessage();
         }
     }
 
-    public function delete(string $table, string $condition){
+    public function delete(string $table, string $condition)
+    {
         $sql = "DELETE FROM " . $table . " WHERE " . $condition;
 
         try {
@@ -56,14 +57,15 @@ class Database
         }
     }
 
-    public function edit(string $table, string $condition, array $params){
+    public function edit(string $table, string $condition, array $params)
+    {
         $sql = "UPDATE $table SET";
 
         $fid = array();
         foreach ($params as $k => $v) {
             $fid[] = " `$k` = '$v'";
         }
-        $sql .= implode("," , $fid);
+        $sql .= implode(",", $fid);
         $sql .= " WHERE $condition";
 
         var_dump($sql);
@@ -76,30 +78,22 @@ class Database
             echo 'Error: ' . $e->getMessage();
         }
     }
-    function insert($table, $data, $checkData) {
 
+    function insert($table, $data)
+    {
         // Przygotowanie kolumn i wartości dla SQL
         $columns = implode(', ', array_keys($data));
         $values = "'" . implode("', '", array_values($data)) . "'";
 
-        $check = $this->select($table, $checkData);
+        // Skomponowanie i wykonanie zapytania SQL
+        $sql = "INSERT INTO $table ($columns) VALUES ($values)";
 
-        //Jeśli email istnieje w bazie danych to nie dodajemy użytkownika do bazy
-        if(!$check) {
-            // Skomponowanie i wykonanie zapytania SQL
-
-            echo 'test';
-            $sql = "INSERT INTO $table ($columns) VALUES ($values)";
-
-            echo $sql;
-            try {
-                $stmt = $this->conn->prepare($sql);
-                $stmt->execute();
-                return $stmt->rowCount();
-            } catch (\PDOException $e) {
-                echo 'Error: ' . $e->getMessage();
-            }
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            return $this->conn->lastInsertId();
+        } catch (\PDOException $e) {
+            echo 'Error: ' . $e->getMessage();
         }
     }
-
 }
