@@ -68,8 +68,6 @@ class Database
         $sql .= implode(",", $fid);
         $sql .= " WHERE $condition";
 
-        var_dump($sql);
-
         try {
             $stmt = $this->conn->prepare($sql);
             $stmt->execute();

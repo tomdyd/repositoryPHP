@@ -22,6 +22,7 @@ class App
     private array $allowedPages = [
         'shop',
         'process_order',
+        'generate'
     ];
 
     public function getPage(): string
